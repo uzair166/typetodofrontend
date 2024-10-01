@@ -314,7 +314,6 @@ const DraggableTodoItem: React.FC<{
   deleteTodo: (id: string) => void;
   moveToTop: (id: string) => void;
   highlightHashtags: (text: string) => React.ReactNode;
-  getTagColor: (tag: string) => string;
 }> = React.memo(
   ({ todo, toggleTodo, deleteTodo, moveToTop, highlightHashtags }) => {
     const { attributes, listeners, setNodeRef, transform, transition } =
@@ -635,7 +634,6 @@ export function EnhancedTodoAppComponent() {
                         deleteTodo={deleteTodo}
                         moveToTop={moveToTop}
                         highlightHashtags={highlightHashtags}
-                        getTagColor={getTagColor}
                       />
                     ))}
                   </ul>
