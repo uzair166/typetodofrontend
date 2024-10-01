@@ -144,17 +144,18 @@ export const useTodos = () => {
   const addTodo = useCallback(
     async (text: string) => {
       const tempId = Date.now().toString();
+      const hashtags = (text.match(/#\w+/g) || []).map((tag) => tag.slice(1));
       const newTodo: Todo = {
         _id: tempId,
         text,
         completed: false,
-        hashtags: text.match(/#\w+/g) || [],
+        hashtags,
       };
 
       updateTodos((prevTodos) => [newTodo, ...prevTodos]);
 
       try {
-        const response = await api.post("/todos", { text });
+        const response = await api.post("/todos", { text, hashtags });
         const serverTodo = response.data;
         updateTodos((prevTodos) =>
           prevTodos.map((todo) => (todo._id === tempId ? serverTodo : todo))
