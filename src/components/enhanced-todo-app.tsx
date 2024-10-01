@@ -104,6 +104,14 @@ const hashtagColors = [
   "text-zinc-700",
 ];
 
+const getTagColor = (tag: string) => {
+  const hash = tag.split("").reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc);
+  }, 0);
+  const index = Math.abs(hash) % hashtagColors.length;
+  return hashtagColors[index];
+};
+
 export const useTodos = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [previousTodos, setPreviousTodos] = useState<Todo[]>([]);
@@ -457,17 +465,6 @@ export function EnhancedTodoAppComponent() {
       })
     );
   }, [todos, filters]);
-
-  const getTagColor = useCallback((tag: string) => {
-    // Simple hash function
-    const hash = tag.split("").reduce((acc, char) => {
-      return char.charCodeAt(0) + ((acc << 5) - acc);
-    }, 0);
-
-    // Use the hash to select a color
-    const index = Math.abs(hash) % hashtagColors.length;
-    return hashtagColors[index];
-  }, []);
 
   const highlightHashtags = useCallback(
     (text: string) => {
