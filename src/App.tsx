@@ -1,10 +1,22 @@
+import { SignIn, useAuth } from "@clerk/clerk-react";
 import "./App.css";
-import { EnhancedTodoAppComponent } from "./components/enhanced-todo-app";
+import TodoList from "./components/TodoList";
 
 function App() {
+  const { isSignedIn } = useAuth();
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <SignIn />
+      </div>
+    );
+  }
+
   return (
     <>
-      <EnhancedTodoAppComponent />
+      {/* <EnhancedTodoAppComponent /> */}
+      <TodoList />
     </>
   );
 }
