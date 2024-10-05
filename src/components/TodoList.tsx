@@ -31,7 +31,9 @@ const TodoList = () => {
   const [todos, setTodos] = useState<ToDo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
   const [tagCounts, setTagCounts] = useState<TagCountMap>(new Map());
   const [includeFilters, setIncludeFilters] = useState<Set<string>>(new Set());
   const [excludeFilters, setExcludeFilters] = useState<Set<string>>(new Set());
@@ -70,7 +72,11 @@ const TodoList = () => {
   }, [api]);
 
   const toggleTheme = () => {
-    setDarkMode(!darkMode);
+    setDarkMode((prevDarkMode) => {
+      const newDarkMode = !prevDarkMode;
+      localStorage.setItem("darkMode", newDarkMode.toString());
+      return newDarkMode;
+    });
   };
 
   const toggleFilter = (tag: string) => {
@@ -249,14 +255,23 @@ const TodoList = () => {
     return filteredTodos.toReversed();
   }, [filteredTodos]);
 
+  // Apply dark mode class to the root element
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
   return (
-    <div>
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+    <div className={darkMode ? "dark" : ""}>
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted dark:from-zinc-900 dark:to-zinc-800 transition-colors duration-300">
         <div className="container mx-auto p-4 max-w-4xl">
-          <Card className="mt-8 shadow-xl dark:bg-gray-800">
+          <Card className="mt-8 shadow-xl dark:bg-zinc-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-2xl font-bold dark:text-white">
                 TypeTodo
@@ -267,7 +282,7 @@ const TodoList = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleTheme}
-                  className="dark:text-gray-300 dark:hover:text-white"
+                  className="dark:text-zinc-300 dark:hover:text-white"
                 >
                   {darkMode ? (
                     <Sun className="h-5 w-5" />
@@ -328,7 +343,7 @@ const TodoList = () => {
                 </DndContext>
 
                 {todos.length === 0 && (
-                  <p className="text-center text-muted-foreground dark:text-gray-400 mt-8">
+                  <p className="text-center text-muted-foreground dark:text-zinc-400 mt-8">
                     Your task list is empty. Add a task to get started!
                   </p>
                 )}

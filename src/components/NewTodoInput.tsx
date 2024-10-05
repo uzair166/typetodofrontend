@@ -23,7 +23,7 @@ export const NewTodoInput = ({
             setNewTodoText("");
           }
         }}
-        className="flex-grow dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+        className="flex-grow dark:bg-zinc-700 dark:text-white dark:placeholder-zinc-400"
       />
       <Button
         onClick={() => {
@@ -33,7 +33,7 @@ export const NewTodoInput = ({
           }
         }}
         size="default"
-        className="px-3 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
+        className="px-3 dark:bg-zinc-600 dark:text-white dark:hover:bg-zinc-500"
       >
         <Plus className="h-5 w-5" />
         <span className="sr-only">Add task</span>

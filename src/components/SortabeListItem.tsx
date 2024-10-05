@@ -65,14 +65,14 @@ export const SortableListItem = ({
       {...attributes}
       className={`flex items-center space-x-2 p-3 rounded-lg transition-all ${
         index % 2 === 0
-          ? "bg-muted/50 dark:bg-gray-700/50"
-          : "bg-background dark:bg-gray-800"
-      } hover:bg-muted/80 dark:hover:bg-gray-700 group`}
+          ? "bg-muted/50 dark:bg-zinc-700/50"
+          : "bg-background dark:bg-zinc-800"
+      } hover:bg-muted/80 dark:hover:bg-zinc-700 group`}
     >
       <Button
         variant="ghost"
         size="icon"
-        className="cursor-move dark:text-gray-400"
+        className="cursor-move dark:text-zinc-400"
         aria-label="Drag to reorder"
         {...listeners}
       >
@@ -82,13 +82,13 @@ export const SortableListItem = ({
         checked={todo.completed}
         onCheckedChange={() => onToggleCompletion(todo.todoId)}
         id={`todo-${todo.todoId}`}
-        // className="data-[state=checked]:bg-primary data-[state=checked]:border-primary dark:border-gray-600"
+        // className="data-[state=checked]:bg-primary data-[state=checked]:border-primary dark:border-zinc-600"
       />
       <label
         htmlFor={`todo-${todo.todoId}`}
         className={`flex-grow text-sm sm:text-base ${
           todo.completed
-            ? "line-through text-muted-foreground dark:text-gray-500"
+            ? "line-through text-muted-foreground dark:text-zinc-500"
             : "dark:text-white"
         }`}
       >
@@ -97,7 +97,7 @@ export const SortableListItem = ({
       <Button
         variant="ghost"
         size="icon"
-        className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-gray-400"
+        className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-zinc-400"
         aria-label="Move to top"
         onClick={() => onReorder(todo.todoId, todoCount - 1)}
       >
@@ -107,7 +107,7 @@ export const SortableListItem = ({
         variant="ghost"
         size="icon"
         onClick={() => onDelete(todo.todoId)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-gray-400"
+        className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-zinc-400"
       >
         <Trash2 className="h-4 w-4" />
         <span className="sr-only">Delete task</span>
