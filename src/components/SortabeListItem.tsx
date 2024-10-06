@@ -1,10 +1,19 @@
+// src/components/SortabeListItem.tsx
 import { ToDo } from "@/types";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronsUp, GripVertical, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronsUp,
+  GripVertical,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { getTagColor } from "@/lib/utils";
 import { Checkbox } from "./ui/checkbox";
+import { Input } from "./ui/input";
 
 const TextWithTags: React.FC<{ sentence: string; tags: string[] }> = ({
   sentence,
@@ -35,20 +44,34 @@ const TextWithTags: React.FC<{ sentence: string; tags: string[] }> = ({
   );
 };
 
-export const SortableListItem = ({
-  index,
-  todo,
-  todoCount,
-  onToggleCompletion,
-  onDelete,
-  onReorder,
-}: {
+interface SortableListItemProps {
   index: number;
   todo: ToDo;
   todoCount: number;
   onToggleCompletion: (id: string) => void;
   onDelete: (id: string) => void;
   onReorder: (id: string, newPosition: number) => void;
+  isEditing: boolean;
+  editText: string;
+  onEditChange: (value: string) => void;
+  onStartEditing: (id: string, text: string) => void;
+  onSaveEdit: (id: string) => void;
+  onCancelEditing: () => void;
+}
+
+export const SortableListItem: React.FC<SortableListItemProps> = ({
+  index,
+  todo,
+  todoCount,
+  onToggleCompletion,
+  onDelete,
+  onReorder,
+  isEditing,
+  editText,
+  onEditChange,
+  onStartEditing,
+  onSaveEdit,
+  onCancelEditing,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: todo.todoId });
@@ -84,34 +107,73 @@ export const SortableListItem = ({
         id={`todo-${todo.todoId}`}
         // className="data-[state=checked]:bg-primary data-[state=checked]:border-primary dark:border-zinc-600"
       />
-      <label
-        htmlFor={`todo-${todo.todoId}`}
-        className={`flex-grow text-sm sm:text-base ${
-          todo.completed
-            ? "line-through text-muted-foreground dark:text-zinc-500"
-            : "dark:text-white"
-        }`}
-      >
-        <TextWithTags sentence={todo.text} tags={todo.tags} />
-      </label>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-zinc-400"
-        aria-label="Move to top"
-        onClick={() => onReorder(todo.todoId, todoCount - 1)}
-      >
-        <ChevronsUp className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onDelete(todo.todoId)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-zinc-400"
-      >
-        <Trash2 className="h-4 w-4" />
-        <span className="sr-only">Delete task</span>
-      </Button>
+
+      {isEditing ? (
+        <div className="flex-grow flex items-center space-x-2">
+          <Input
+            type="text"
+            value={editText}
+            onChange={(e) => onEditChange(e.target.value)}
+            className="flex-grow dark:bg-gray-700 dark:text-white"
+            autoFocus
+          />
+          <Button
+            size="sm"
+            onClick={() => onSaveEdit(todo.todoId)}
+            className="dark:bg-gray-600 dark:text-white"
+          >
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onCancelEditing}
+            className="dark:border-gray-600 dark:text-gray-300"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <>
+          <label
+            htmlFor={`todo-${todo.todoId}`}
+            className={`flex-grow text-sm sm:text-base ${
+              todo.completed
+                ? "line-through text-muted-foreground dark:text-zinc-500"
+                : "dark:text-white"
+            }`}
+          >
+            <TextWithTags sentence={todo.text} tags={todo.tags} />
+          </label>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onStartEditing(todo.todoId, todo.text)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-gray-400"
+            aria-label="Edit task"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-gray-400"
+            aria-label="Move to top"
+            onClick={() => onReorder(todo.todoId, todoCount - 1)}
+          >
+            <ChevronsUp className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onDelete(todo.todoId)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity dark:text-gray-400"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete task</span>
+          </Button>
+        </>
+      )}
     </li>
   );
 };

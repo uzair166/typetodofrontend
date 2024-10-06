@@ -1,3 +1,5 @@
+// src/components/TodoList.tsx
+
 import { useState, useEffect, useMemo } from "react";
 import { EditToDoPayload, ToDo } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -31,12 +33,14 @@ const TodoList = () => {
   const [todos, setTodos] = useState<ToDo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("darkMode") === "true";
-  });
   const [tagCounts, setTagCounts] = useState<TagCountMap>(new Map());
   const [includeFilters, setIncludeFilters] = useState<Set<string>>(new Set());
   const [excludeFilters, setExcludeFilters] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
 
   const api = useApi();
   const allTags = useMemo(() => Array.from(tagCounts.keys()), [tagCounts]);
@@ -230,6 +234,33 @@ const TodoList = () => {
     }
   };
 
+  const startEditing = (todoId: string, text: string) => {
+    setEditingId(todoId);
+    setEditText(text);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+
+  const saveEdit = async (todoId: string) => {
+    if (editText.trim() === "") return;
+
+    const oldTodo = todos.find((todo) => todo.todoId === todoId);
+    if (!oldTodo) return;
+
+    const oldTags = oldTodo.tags;
+    const newTags = extractTags(editText);
+
+    const updates: EditToDoPayload = { text: editText, tags: newTags };
+    await editTodo(todoId, updates);
+
+    updateTagCounts(newTags, oldTags);
+    setEditingId(null);
+    setEditText("");
+  };
+
   const todosWithCompletedAtTheEnd = useMemo(() => {
     return todos
       .slice()
@@ -266,6 +297,21 @@ const TodoList = () => {
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
+
+  // ignore: test data
+  // useEffect(() => {
+  //   setTodos([
+  //     {
+  //       todoId: "1",
+  //       text: "Test",
+  //       tags: ["test"],
+  //       completed: false,
+  //       order: 0,
+  //       createdAt: new Date().toISOString(),
+  //       updatedAt: new Date().toISOString(),
+  //     },
+  //   ]);
+  // }, []);
 
   return (
     <div className={darkMode ? "dark" : ""}>
@@ -336,6 +382,12 @@ const TodoList = () => {
                           onToggleCompletion={toggleCompletion}
                           onDelete={deleteTodo}
                           onReorder={reorderTodo}
+                          isEditing={editingId === todo.todoId}
+                          editText={editText}
+                          onEditChange={setEditText}
+                          onStartEditing={startEditing}
+                          onSaveEdit={saveEdit}
+                          onCancelEditing={cancelEditing}
                         />
                       ))}
                     </ul>
