@@ -114,6 +114,11 @@ export const SortableListItem: React.FC<SortableListItemProps> = ({
             type="text"
             value={editText}
             onChange={(e) => onEditChange(e.target.value)}
+            onKeyUp={(e) => {
+              if (e.key === "Enter") {
+                onSaveEdit(todo.todoId);
+              }
+            }}
             className="flex-grow dark:bg-gray-700 dark:text-white"
             autoFocus
           />
