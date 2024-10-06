@@ -175,6 +175,23 @@ const TodoList = () => {
     }
   };
 
+  const saveEdit = async (todoId: string) => {
+    if (editText.trim() === "") return;
+
+    const oldTodo = todos.find((todo) => todo.todoId === todoId);
+    if (!oldTodo) return;
+
+    const oldTags = oldTodo.tags;
+    const newTags = extractTags(editText);
+
+    const updates: EditToDoPayload = { text: editText, tags: newTags };
+
+    editTodo(todoId, updates);
+    setEditingId(null);
+    setEditText("");
+    updateTagCounts(newTags, oldTags);
+  };
+
   const reorderTodo = async (todoId: string, newPosition: number) => {
     const updatedTodos = arrayMove(
       todos,
@@ -240,23 +257,6 @@ const TodoList = () => {
   };
 
   const cancelEditing = () => {
-    setEditingId(null);
-    setEditText("");
-  };
-
-  const saveEdit = async (todoId: string) => {
-    if (editText.trim() === "") return;
-
-    const oldTodo = todos.find((todo) => todo.todoId === todoId);
-    if (!oldTodo) return;
-
-    const oldTags = oldTodo.tags;
-    const newTags = extractTags(editText);
-
-    const updates: EditToDoPayload = { text: editText, tags: newTags };
-    await editTodo(todoId, updates);
-
-    updateTagCounts(newTags, oldTags);
     setEditingId(null);
     setEditText("");
   };
