@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { EditToDoPayload, ToDo } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Moon, Sun } from "lucide-react";
+import { Check, Minus, Moon, Sun } from "lucide-react";
 import { useApi } from "@/api";
 import { UserButton } from "@clerk/clerk-react";
 import {
@@ -29,6 +29,16 @@ import { NewTodoInput } from "./NewTodoInput";
 
 type TagCountMap = Map<string, number>;
 
+const getFilterIcon = (filter: boolean | null) => {
+  if (filter === true) {
+    return <Check className="h-3 w-3" />;
+  } else if (filter === false) {
+    return <Minus className="h-3 w-3" />;
+  } else {
+    return null;
+  }
+};
+
 const TodoList = () => {
   const [todos, setTodos] = useState<ToDo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +46,7 @@ const TodoList = () => {
   const [tagCounts, setTagCounts] = useState<TagCountMap>(new Map());
   const [includeFilters, setIncludeFilters] = useState<Set<string>>(new Set());
   const [excludeFilters, setExcludeFilters] = useState<Set<string>>(new Set());
+  const [noTagFilter, setNoTagFilter] = useState<boolean | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [darkMode, setDarkMode] = useState(() => {
@@ -85,6 +96,7 @@ const TodoList = () => {
 
   const toggleFilter = (tag: string) => {
     setIncludeFilters((prevInclude) => {
+      setNoTagFilter(null);
       const newInclude = new Set(prevInclude);
       if (newInclude.has(tag)) {
         newInclude.delete(tag);
@@ -101,6 +113,16 @@ const TodoList = () => {
         });
       }
       return newInclude;
+    });
+  };
+
+  const toggleNoTagFilter = () => {
+    setIncludeFilters(new Set());
+    setExcludeFilters(new Set());
+    setNoTagFilter((prev) => {
+      if (prev === null) return true;
+      if (prev === true) return false;
+      return null;
     });
   };
 
@@ -269,6 +291,14 @@ const TodoList = () => {
 
   const filteredTodos = useMemo(() => {
     return todosWithCompletedAtTheEnd.filter((todo) => {
+      const hasNoTags = todo.tags.length === 0;
+
+      if (noTagFilter !== null) {
+        if (noTagFilter && !hasNoTags) return false;
+        if (!noTagFilter && hasNoTags) return false;
+        return true;
+      }
+
       if (
         includeFilters.size > 0 &&
         !todo.tags.some((tag) => includeFilters.has(tag))
@@ -280,7 +310,7 @@ const TodoList = () => {
       }
       return true;
     });
-  }, [todosWithCompletedAtTheEnd, includeFilters, excludeFilters]);
+  }, [todosWithCompletedAtTheEnd, noTagFilter, includeFilters, excludeFilters]);
 
   const reversedFilteredTodos = useMemo(() => {
     return filteredTodos.toReversed();
@@ -316,7 +346,7 @@ const TodoList = () => {
   return (
     <div className={darkMode ? "dark" : ""}>
       <div className="min-h-screen bg-gradient-to-b from-background to-muted dark:from-zinc-900 dark:to-zinc-800 transition-colors duration-300">
-        <div className="container mx-auto p-4 max-w-4xl">
+        <div className="container mx-auto p-4 max-w-6xl">
           <Card className="mt-8 shadow-xl dark:bg-zinc-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-2xl font-bold dark:text-white">
@@ -360,6 +390,19 @@ const TodoList = () => {
                     />
                   );
                 })}
+                {allTags.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleNoTagFilter}
+                    className={`flex items-center space-x-1 hover:scale-105 transition-all duration-300 
+                      ${noTagFilter && "border-2 border-white"} 
+                      ${noTagFilter === false && "opacity-50 line-through"}`}
+                  >
+                    <span>No tags</span>
+                    {getFilterIcon(noTagFilter)}
+                  </Button>
+                )}
               </div>
 
               <div className="max-h-[60vh] overflow-y-auto pr-2">
