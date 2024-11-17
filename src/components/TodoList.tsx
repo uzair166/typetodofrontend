@@ -1,6 +1,6 @@
 // src/components/TodoList.tsx
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { EditToDoPayload, ToDo } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -26,8 +26,42 @@ import { extractTags } from "@/lib/utils";
 import { SortableListItem } from "./SortabeListItem";
 import { TagFilterButton } from "./TagFilterButton";
 import { NewTodoInput } from "./NewTodoInput";
+import { Notification, NotificationContainer } from "./task-added-notification";
+import { v4 as uuidv4 } from 'uuid';
+import { LogoLoadingSpinner } from "./LogoLoadingSpinner";
 
 type TagCountMap = Map<string, number>;
+
+interface NotificationState {
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id'>) => void;
+  removeNotification: (id: string) => void;
+}
+
+function useNotifications(): NotificationState {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
+    const id = uuidv4();
+    setNotifications(prev => {
+      const updatedNotifications = [...prev, { ...notification, id }];
+      if (updatedNotifications.length > 10) {
+        return updatedNotifications.slice(-10);
+      }
+      return updatedNotifications;
+    });
+    
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 3000);
+  }, []);
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  }, []);
+
+  return { notifications, addNotification, removeNotification };
+}
 
 const getFilterIcon = (filter: boolean | null) => {
   if (filter === true) {
@@ -53,6 +87,7 @@ const TodoList = () => {
     return localStorage.getItem("darkMode") === "true";
   });
   const [deletingTodos] = useState(new Set<string>());
+  const { notifications, addNotification, removeNotification } = useNotifications();
 
   const api = useApi();
   const allTags = useMemo(() => Array.from(tagCounts.keys()), [tagCounts]);
@@ -150,6 +185,22 @@ const TodoList = () => {
     });
   };
 
+  const showSuccessNotification = useCallback((title: string, message: string) => {
+    addNotification({
+      title,
+      message,
+      variant: 'success'
+    });
+  }, [addNotification]);
+
+  const showErrorNotification = useCallback((message: string) => {
+    addNotification({
+      title: 'Error',
+      message,
+      variant: 'error'
+    });
+  }, [addNotification]);
+
   const addTodo = async (text: string) => {
     const tags = extractTags(text);
     const tempTodoId = Date.now().toString();
@@ -172,13 +223,14 @@ const TodoList = () => {
           todo.todoId === tempTodoId ? response.data.todo : todo
         )
       );
+      showSuccessNotification('Task Added', 'Your task was successfully added');
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setTodos((prevTodos) =>
         prevTodos.filter((todo) => todo.todoId !== tempTodoId)
       );
       updateTagCounts([], tags);
-      setError("Failed to add to-do");
+      showErrorNotification('Failed to add task. Please try again.');
     }
   };
 
@@ -194,7 +246,11 @@ const TodoList = () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setTodos((prevTodos) => [...prevTodos]);
-      setError("Failed to edit to-do");
+      addNotification({
+        title: "Error",
+        message: "Failed to update task. Please try again.",
+        variant: "error"
+      });
     }
   };
 
@@ -213,6 +269,11 @@ const TodoList = () => {
     setEditingId(null);
     setEditText("");
     updateTagCounts(newTags, oldTags);
+    addNotification({
+      title: "Task Updated",
+      message: "Your task was successfully updated",
+      variant: "success"
+    });
   };
 
   const reorderTodo = async (todoId: string, newPosition: number) => {
@@ -233,7 +294,11 @@ const TodoList = () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setTodos(todos);
-      setError("Failed to reorder to-dos");
+      addNotification({
+        title: "Error",
+        message: "Failed to reorder tasks. Please try again.",
+        variant: "error"
+      });
     }
   };
 
@@ -253,11 +318,12 @@ const TodoList = () => {
 
     try {
       await api.delete(`/todos/${todoId}`);
+      showSuccessNotification('Task Deleted', 'Your task was successfully deleted');
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setTodos(previousTodos);
       updateTagCounts(tagsToRemove);
-      setError("Failed to delete to-do");
+      showErrorNotification('Failed to delete task. Please try again.');
     } finally {
       deletingTodos.delete(todoId);
     }
@@ -267,7 +333,21 @@ const TodoList = () => {
     const todo = todos.find((todo) => todo.todoId === todoId);
     if (!todo) return;
 
-    await editTodo(todoId, { completed: !todo.completed });
+    try {
+      await editTodo(todoId, { completed: !todo.completed });
+      addNotification({
+        title: todo.completed ? "Task Uncompleted" : "Task Completed",
+        message: `Task marked as ${todo.completed ? "uncompleted" : "completed"}`,
+        variant: "success"
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      addNotification({
+        title: "Error",
+        message: "Failed to update task status. Please try again.",
+        variant: "error"
+      });
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -332,8 +412,8 @@ const TodoList = () => {
     }
   }, [darkMode]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) return <LogoLoadingSpinner />;
+  if (error) return <div>Error</div>;
 
   // ignore: test data
   // useEffect(() => {
@@ -454,6 +534,10 @@ const TodoList = () => {
           </Card>
         </div>
       </div>
+      <NotificationContainer
+        notifications={notifications}
+        onClose={removeNotification}
+      />
     </div>
   );
 };

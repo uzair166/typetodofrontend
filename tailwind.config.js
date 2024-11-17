@@ -51,6 +51,15 @@ export default {
           5: "hsl(var(--chart-5))",
         },
       },
+      keyframes: {
+        shrink: {
+          '0%': { width: '100%' },
+          '100%': { width: '0%' }
+        }
+      },
+      animation: {
+        shrink: 'shrink 5s linear'
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],
