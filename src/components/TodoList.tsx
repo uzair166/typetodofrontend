@@ -52,6 +52,7 @@ const TodoList = () => {
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
+  const [deletingTodos] = useState(new Set<string>());
 
   const api = useApi();
   const allTags = useMemo(() => Array.from(tagCounts.keys()), [tagCounts]);
@@ -237,9 +238,13 @@ const TodoList = () => {
   };
 
   const deleteTodo = async (todoId: string) => {
+    if (deletingTodos.has(todoId)) return;
+
     const previousTodos = [...todos];
     const todoToDelete = todos.find((todo) => todo.todoId === todoId);
     if (!todoToDelete) return;
+
+    deletingTodos.add(todoId);
 
     const tagsToRemove = extractTags(todoToDelete.text);
     updateTagCounts([], tagsToRemove);
@@ -253,6 +258,8 @@ const TodoList = () => {
       setTodos(previousTodos);
       updateTagCounts(tagsToRemove);
       setError("Failed to delete to-do");
+    } finally {
+      deletingTodos.delete(todoId);
     }
   };
 
