@@ -23,7 +23,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { extractTags } from "@/lib/utils";
-import { SortableListItem } from "./SortabeListItem";
+import { SortableListItem } from "./SortableListItem";
 import { TagFilterButton } from "./TagFilterButton";
 import { NewTodoInput } from "./NewTodoInput";
 import { Notification, NotificationContainer } from "./task-added-notification";
