@@ -1,4 +1,4 @@
-// src/components/SortabeListItem.tsx
+// src/components/SortableListItem.tsx
 import { ToDo } from "@/types";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
