@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { EditToDoPayload, ToDo } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Check, Minus, Moon, Sun } from "lucide-react";
+import { Check, Minus, Moon, Sun, PartyPopper } from "lucide-react";
 import { useApi } from "@/api";
 import { UserButton } from "@clerk/clerk-react";
 import {
@@ -29,6 +29,7 @@ import { NewTodoInput } from "./NewTodoInput";
 import { Notification, NotificationContainer } from "./task-added-notification";
 import { v4 as uuidv4 } from 'uuid';
 import { LogoLoadingSpinner } from "./LogoLoadingSpinner";
+import confetti from 'canvas-confetti';
 
 type TagCountMap = Map<string, number>;
 
@@ -86,8 +87,10 @@ const TodoList = () => {
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
+  const [groupByHashtags, setGroupByHashtags] = useState(false);
   const [deletingTodos] = useState(new Set<string>());
   const { notifications, addNotification, removeNotification } = useNotifications();
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const api = useApi();
   const allTags = useMemo(() => Array.from(tagCounts.keys()), [tagCounts]);
@@ -370,14 +373,13 @@ const TodoList = () => {
     setEditText("");
   };
 
-  const todosWithCompletedAtTheEnd = useMemo(() => {
-    return todos
-      .slice()
-      .sort((a, b) => Number(b.completed) - Number(a.completed));
-  }, [todos]);
+  const groupedTodos = useMemo(() => {
+    if (!groupByHashtags) return null;
 
-  const filteredTodos = useMemo(() => {
-    return todosWithCompletedAtTheEnd.filter((todo) => {
+    const groups: { tag: string; todos: ToDo[] }[] = [];
+    const noTagGroup: ToDo[] = [];
+
+    const filteredTodosList = todos.filter((todo) => {
       const hasNoTags = todo.tags.length === 0;
 
       if (noTagFilter !== null) {
@@ -397,11 +399,39 @@ const TodoList = () => {
       }
       return true;
     });
-  }, [todosWithCompletedAtTheEnd, noTagFilter, includeFilters, excludeFilters]);
 
-  const reversedFilteredTodos = useMemo(() => {
-    return filteredTodos.toReversed();
-  }, [filteredTodos]);
+    // Sort todos by completion status before grouping
+    const sortedTodos = [...filteredTodosList].sort(
+      (a, b) => Number(a.completed) - Number(b.completed)
+    );
+
+    sortedTodos.forEach(todo => {
+      const tags = extractTags(todo.text);
+      if (tags.length === 0) {
+        noTagGroup.push(todo);
+      } else {
+        tags.forEach(tag => {
+          let group = groups.find(g => g.tag === tag);
+          if (!group) {
+            group = { tag, todos: [] };
+            groups.push(group);
+          }
+          group.todos.push(todo);
+        });
+      }
+    });
+
+    // Sort groups by tag name and sort todos within each group by completion
+    groups.sort((a, b) => a.tag.localeCompare(b.tag));
+    groups.forEach(group => {
+      group.todos.sort((a, b) => Number(a.completed) - Number(b.completed));
+    });
+    
+    // Sort noTagGroup by completion
+    noTagGroup.sort((a, b) => Number(a.completed) - Number(b.completed));
+
+    return { groups, noTagGroup };
+  }, [todos, groupByHashtags, noTagFilter, includeFilters, excludeFilters]);
 
   // Apply dark mode class to the root element
   useEffect(() => {
@@ -411,6 +441,77 @@ const TodoList = () => {
       document.documentElement.classList.remove("dark");
     }
   }, [darkMode]);
+
+  // Sort todos for the default view
+  const sortedTodos = useMemo(() => {
+    return [...todos]
+      .filter((todo) => {
+        const hasNoTags = todo.tags.length === 0;
+
+        if (noTagFilter !== null) {
+          if (noTagFilter && !hasNoTags) return false;
+          if (!noTagFilter && hasNoTags) return false;
+          return true;
+        }
+
+        if (
+          includeFilters.size > 0 &&
+          !todo.tags.some((tag) => includeFilters.has(tag))
+        ) {
+          return false;
+        }
+        if (todo.tags.some((tag) => excludeFilters.has(tag))) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => Number(a.completed) - Number(b.completed));
+  }, [todos, noTagFilter, includeFilters, excludeFilters]);
+
+  // Calculate progress
+  const progress = useMemo(() => {
+    if (todos.length === 0) return 0;
+    const completedCount = todos.filter(todo => todo.completed).length;
+    return (completedCount / todos.length) * 100;
+  }, [todos]);
+
+  // Enhanced celebration effect
+  const triggerCelebration = useCallback(() => {
+    setShowCelebration(true);
+    
+    // Fire confetti from the left edge
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { x: 0.1, y: 0.8 }
+    });
+
+    // Fire confetti from the right edge
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { x: 0.9, y: 0.8 }
+    });
+
+    // Fire golden confetti from the middle
+    setTimeout(() => {
+      confetti({
+        particleCount: 80,
+        spread: 100,
+        origin: { x: 0.5, y: 0.7 },
+        colors: ['#FFD700', '#FDB931', '#FFED4A']
+      });
+    }, 250);
+
+    setTimeout(() => setShowCelebration(false), 3000);
+  }, []);
+
+  // Check for all tasks completed
+  useEffect(() => {
+    if (todos.length > 0 && todos.every(todo => todo.completed)) {
+      triggerCelebration();
+    }
+  }, [todos, triggerCelebration]);
 
   if (loading) return <LogoLoadingSpinner />;
   if (error) return <div>Error</div>;
@@ -440,6 +541,13 @@ const TodoList = () => {
                 TypeTodo
               </CardTitle>
               <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setGroupByHashtags(!groupByHashtags)}
+                  className={groupByHashtags ? "bg-primary/10" : ""}
+                >
+                  Order by #
+                </Button>
                 <UserButton />
                 <Button
                   variant="ghost"
@@ -459,6 +567,31 @@ const TodoList = () => {
 
             <CardContent>
               <NewTodoInput addTodo={addTodo} />
+
+              {todos.length > 0 && (
+                <div className="flex items-center gap-2 mt-4 mb-6">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-500 ease-out"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                    {Math.round(progress)}% complete
+                  </span>
+                </div>
+              )}
+
+              {showCelebration && (
+                <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+                  <div className="animate-bounce-in-out">
+                    <div className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-full shadow-lg">
+                      <PartyPopper className="h-6 w-6" />
+                      <span className="font-medium text-lg">All tasks completed!</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-2 mb-4">
                 {allTags.map((tag) => {
@@ -498,30 +631,105 @@ const TodoList = () => {
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <SortableContext
-                    items={todos.map((todo) => todo.todoId)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <ul className="space-y-2">
-                      {reversedFilteredTodos.map((todo, index) => (
-                        <SortableListItem
-                          key={todo.todoId}
-                          index={index}
-                          todo={todo}
-                          todoCount={todos.length}
-                          onToggleCompletion={toggleCompletion}
-                          onDelete={deleteTodo}
-                          onReorder={reorderTodo}
-                          isEditing={editingId === todo.todoId}
-                          editText={editText}
-                          onEditChange={setEditText}
-                          onStartEditing={startEditing}
-                          onSaveEdit={saveEdit}
-                          onCancelEditing={cancelEditing}
-                        />
+                  {groupByHashtags && groupedTodos ? (
+                    <div className="space-y-6">
+                      {groupedTodos.groups.map(({ tag, todos: groupTodos }) => (
+                        <div key={tag}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-px flex-grow bg-border" />
+                            <span className="text-sm font-medium text-muted-foreground">
+                              #{tag}
+                            </span>
+                            <div className="h-px flex-grow bg-border" />
+                          </div>
+                          <SortableContext
+                            items={groupTodos.map((t) => t.todoId)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="space-y-2">
+                              {groupTodos.map((todo) => (
+                                <SortableListItem
+                                  key={todo.todoId}
+                                  todo={todo}
+                                  index={groupTodos.indexOf(todo)}
+                                  todoCount={todos.length}
+                                  isEditing={editingId === todo.todoId}
+                                  editText={editText}
+                                  onEditChange={setEditText}
+                                  onStartEditing={startEditing}
+                                  onSaveEdit={saveEdit}
+                                  onCancelEditing={cancelEditing}
+                                  onDelete={deleteTodo}
+                                  onToggleCompletion={toggleCompletion}
+                                  onReorder={reorderTodo}
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </div>
                       ))}
-                    </ul>
-                  </SortableContext>
+                      {groupedTodos.noTagGroup.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-px flex-grow bg-border" />
+                            <span className="text-sm font-medium text-muted-foreground">
+                              No Tags
+                            </span>
+                            <div className="h-px flex-grow bg-border" />
+                          </div>
+                          <SortableContext
+                            items={groupedTodos.noTagGroup.map((t) => t.todoId)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="space-y-2">
+                              {groupedTodos.noTagGroup.map((todo) => (
+                                <SortableListItem
+                                  key={todo.todoId}
+                                  todo={todo}
+                                  index={groupedTodos.noTagGroup.indexOf(todo)}
+                                  todoCount={todos.length}
+                                  isEditing={editingId === todo.todoId}
+                                  editText={editText}
+                                  onEditChange={setEditText}
+                                  onStartEditing={startEditing}
+                                  onSaveEdit={saveEdit}
+                                  onCancelEditing={cancelEditing}
+                                  onDelete={deleteTodo}
+                                  onToggleCompletion={toggleCompletion}
+                                  onReorder={reorderTodo}
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <SortableContext
+                      items={todos.map((t) => t.todoId)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-2">
+                        {sortedTodos.map((todo) => (
+                          <SortableListItem
+                            key={todo.todoId}
+                            todo={todo}
+                            index={todos.indexOf(todo)}
+                            todoCount={todos.length}
+                            isEditing={editingId === todo.todoId}
+                            editText={editText}
+                            onEditChange={setEditText}
+                            onStartEditing={startEditing}
+                            onSaveEdit={saveEdit}
+                            onCancelEditing={cancelEditing}
+                            onDelete={deleteTodo}
+                            onToggleCompletion={toggleCompletion}
+                            onReorder={reorderTodo}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  )}
                 </DndContext>
 
                 {todos.length === 0 && (

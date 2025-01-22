@@ -1,6 +1,6 @@
 import { CheckCircle, X, Undo, Info, AlertCircle } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, forwardRef } from 'react'
 
 export type NotificationVariant = 'success' | 'info' | 'error'
 
@@ -29,13 +29,10 @@ const variantStyles = {
 
 const MAX_VISIBLE_NOTIFICATIONS = 2;
 
-function SingleNotification({ 
-  notification,
-  onRemove 
-}: { 
+const SingleNotification = forwardRef<HTMLDivElement, {
   notification: Notification
-  onRemove: (id: string) => void 
-}) {
+  onRemove: (id: string) => void
+}>(({ notification, onRemove }, ref) => {
   const [isExiting, setIsExiting] = useState(false)
   const { id, title, message, variant, onUndo } = notification
 
@@ -69,6 +66,7 @@ function SingleNotification({
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, y: 50, scale: 0.3 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -118,22 +116,29 @@ function SingleNotification({
       />
     </motion.div>
   )
-}
+})
 
-function NotificationCounter({ count }: { count: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.3 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.5 }}
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 flex items-center justify-center"
-    >
-      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-        +{count} more notification{count !== 1 ? 's' : ''}
-      </span>
-    </motion.div>
-  );
-}
+SingleNotification.displayName = 'SingleNotification'
+
+const NotificationCounter = forwardRef<HTMLDivElement, { count: number }>(
+  ({ count }, ref) => {
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, scale: 0.3 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.5 }}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 flex items-center justify-center"
+      >
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+          +{count} more notification{count !== 1 ? 's' : ''}
+        </span>
+      </motion.div>
+    );
+  }
+);
+
+NotificationCounter.displayName = 'NotificationCounter';
 
 export function NotificationContainer({ 
   notifications,
