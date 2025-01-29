@@ -533,9 +533,9 @@ const TodoList = () => {
 
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted dark:from-zinc-900 dark:to-zinc-800 transition-colors duration-300">
-        <div className="container mx-auto p-4 max-w-6xl">
-          <Card className="mt-8 shadow-xl dark:bg-zinc-800">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted dark:from-zinc-900 dark:to-zinc-800 transition-colors duration-300 flex flex-col">
+        <div className="container mx-auto p-4 max-w-6xl flex-grow flex flex-col">
+          <Card className="mt-8 shadow-xl dark:bg-zinc-800 flex-grow flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-2xl font-bold dark:text-white">
                 TypeTodo
@@ -565,7 +565,7 @@ const TodoList = () => {
               </div>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="flex-grow flex flex-col">
               <NewTodoInput addTodo={addTodo} />
 
               {todos.length > 0 && (
@@ -625,7 +625,7 @@ const TodoList = () => {
                 )}
               </div>
 
-              <div className="max-h-[60vh] overflow-y-auto pr-2">
+              <div className="flex-grow overflow-auto">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
